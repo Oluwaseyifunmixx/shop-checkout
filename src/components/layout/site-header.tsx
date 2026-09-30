@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { SignInButton } from "@/components/auth/sign-in-button";
 import { UserMenu } from "@/components/auth/user-menu";
+import { CartSheet } from "@/components/cart/cart-sheet";
+import { getCart } from "@/lib/data/cart";
 import { createClient } from "@/lib/supabase/server";
 
 export async function SiteHeader() {
@@ -9,6 +11,7 @@ export async function SiteHeader() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const cart = user ? await getCart(user.id) : [];
   const name =
     (user?.user_metadata.full_name as string | undefined) ?? user?.email ?? "";
 
@@ -21,8 +24,12 @@ export async function SiteHeader() {
         >
           Crafted
         </Link>
+
         {user ? (
-          <UserMenu name={name} email={user.email ?? ""} />
+          <div className="flex items-center gap-1">
+            <CartSheet items={cart} />
+            <UserMenu name={name} email={user.email ?? ""} />
+          </div>
         ) : (
           <SignInButton />
         )}

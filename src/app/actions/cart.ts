@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { MAX_QUANTITY } from "@/lib/cart";
 
-const MAX_QUANTITY = 20;
 
 export type CartActionResult =
   | { ok: true }
