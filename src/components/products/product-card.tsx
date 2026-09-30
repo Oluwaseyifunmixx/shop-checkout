@@ -2,6 +2,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { formatNaira } from "@/lib/format";
 import type { Product } from "@/types/shop";
 import { AddToCartButton } from "./add-to-cart-button";
+import { ProductImage } from "./product-image";
 
 type ProductCardProps = {
   product: Product;
@@ -10,14 +11,11 @@ type ProductCardProps = {
 export function ProductCard({ product }: ProductCardProps) {
   return (
     <Card className="flex h-full flex-col overflow-hidden pt-0">
-      <div
-        aria-hidden="true"
-        className="grid aspect-square place-items-center bg-muted"
-      >
-        <span className="text-6xl font-semibold text-muted-foreground/50">
-          {product.name.charAt(0)}
-        </span>
-      </div>
+      <ProductImage
+        name={product.name}
+        imageUrl={product.imageUrl}
+        sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+      />
 
       <CardContent className="flex flex-1 flex-col gap-2">
         <h2 className="leading-snug font-semibold">{product.name}</h2>

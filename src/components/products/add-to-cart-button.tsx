@@ -40,7 +40,12 @@ export function AddToCartButton({ productId, productName }: AddToCartButtonProps
   }
 
   return (
-    <Button onClick={handleClick} disabled={isPending} className="w-full">
+    <Button
+      size="lg"
+      onClick={handleClick}
+      disabled={isPending}
+      className="h-11 w-full text-base"
+    >
       <ShoppingBag />
       {isPending ? "Adding…" : "Add to cart"}
     </Button>
