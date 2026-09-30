@@ -3,22 +3,14 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
+import { startGoogleSignIn } from "@/lib/auth/sign-in";
 
 export function SignInButton() {
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   async function handleSignIn() {
     setIsRedirecting(true);
-
-    const supabase = createClient();
-    const returnPath = window.location.pathname;
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(returnPath)}`,
-      },
-    });
+    const { error } = await startGoogleSignIn(window.location.pathname);
 
     if (error) {
       setIsRedirecting(false);

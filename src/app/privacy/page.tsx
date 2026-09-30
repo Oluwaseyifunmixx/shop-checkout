@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
-const SHOP_NAME = "Shop";
+
 const CONTACT_EMAIL = "your-email@example.com";
 const LAST_UPDATED = "30 September 2026";
 
 export const metadata: Metadata = {
-  title: `Privacy Policy · ${SHOP_NAME}`,
+  title: "Privacy Policy",
 };
 
 export default function PrivacyPage() {

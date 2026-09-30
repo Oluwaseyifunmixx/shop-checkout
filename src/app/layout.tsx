@@ -15,8 +15,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Shop",
-  description: "Handmade goods, delivered.",
+  title: {
+    default: "Crafted · Handmade goods from Nigerian makers",
+    template: "%s · Crafted",
+  },
+  description:
+    "Shop handmade goods from independent Nigerian makers, delivered to your door.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
