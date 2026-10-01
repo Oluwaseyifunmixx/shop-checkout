@@ -27,6 +27,7 @@ A full-stack shop with Google sign-in, a database-backed cart, a checkout page w
 - **Checkout page** with validated delivery details and an order summary
 - **Paystack payments**, verified on the server before an order is marked paid
 - **Order confirmation emails** through Mailgun, sent exactly once per order
+- **My orders**: signed-in shoppers can see their past orders, with status, items and totals
 - **Everything persisted**: products, carts, orders and order items all live in Supabase
 - **Responsive** on phone, tablet and desktop
 

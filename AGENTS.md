@@ -30,6 +30,7 @@ src/
 │   ├── page.tsx                 Product listing (home)
 │   ├── actions/                 Server actions: cart.ts, checkout.ts
 │   ├── auth/callback/route.ts   Exchanges Google's sign-in code for a session
+│   ├── orders/page.tsx          The shopper's order history
 │   ├── checkout/
 │   │   ├── page.tsx             Checkout form and order summary
 │   │   ├── verify/route.ts      Paystack callback: confirms payment, then redirects
