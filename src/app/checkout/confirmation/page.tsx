@@ -6,10 +6,11 @@ import { formatNaira } from "@/lib/format";
 import { confirmOrderPayment, formatOrderReference } from "@/lib/orders";
 import { createClient } from "@/lib/supabase/server";
 
-
 export const metadata: Metadata = {
   title: "Order confirmation",
 };
+
+const ACTION_BUTTON_CLASS = "h-11 px-6 text-base";
 
 type ConfirmationPageProps = {
   searchParams: Promise<{ reference?: string }>;
@@ -56,7 +57,7 @@ export default async function ConfirmationPage({ searchParams }: ConfirmationPag
         icon={<CircleX className="size-12 text-muted-foreground" />}
         title="We couldn't find that order"
       >
-        <Button asChild>
+        <Button asChild size="lg" className={ACTION_BUTTON_CLASS}>
           <Link href="/">Back to the shop</Link>
         </Button>
       </StatusCard>
@@ -74,7 +75,7 @@ export default async function ConfirmationPage({ searchParams }: ConfirmationPag
         <p className="text-muted-foreground">
           You haven&rsquo;t been charged. Your cart is still saved, so you can try again.
         </p>
-        <Button asChild>
+        <Button asChild size="lg" className={ACTION_BUTTON_CLASS}>
           <Link href="/checkout">Try again</Link>
         </Button>
       </StatusCard>
@@ -91,12 +92,12 @@ export default async function ConfirmationPage({ searchParams }: ConfirmationPag
           This usually takes a moment. If you closed the payment page, your cart is still saved.
         </p>
         <div className="flex flex-wrap justify-center gap-2">
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" size="lg" className={ACTION_BUTTON_CLASS}>
             <Link href={`/checkout/confirmation?reference=${encodeURIComponent(reference ?? "")}`}>
               Check again
             </Link>
           </Button>
-          <Button asChild>
+          <Button asChild size="lg" className={ACTION_BUTTON_CLASS}>
             <Link href="/checkout">Back to checkout</Link>
           </Button>
         </div>
@@ -132,14 +133,14 @@ export default async function ConfirmationPage({ searchParams }: ConfirmationPag
         ))}
       </ul>
 
-           <p className="text-sm text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         Order reference:{" "}
         <span className="font-mono">{formatOrderReference(order.id)}</span>
         <br />
         A confirmation email is on its way to {order.email}.
       </p>
 
-      <Button asChild>
+      <Button asChild size="lg" className={ACTION_BUTTON_CLASS}>
         <Link href="/">Continue shopping</Link>
       </Button>
     </StatusCard>
