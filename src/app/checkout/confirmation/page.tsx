@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CircleCheck, CircleX, Clock } from "lucide-react";
+import { RefreshOnMount } from "@/components/checkout/refresh-on-mount";
 import { Button } from "@/components/ui/button";
 import { formatNaira } from "@/lib/format";
 import { confirmOrderPayment, formatOrderReference } from "@/lib/orders";
@@ -115,6 +116,8 @@ export default async function ConfirmationPage({ searchParams }: ConfirmationPag
       icon={<CircleCheck className="size-12 text-green-600" />}
       title="Thank you for your order!"
     >
+      <RefreshOnMount />
+
       <p className="text-muted-foreground">
         We&rsquo;ve received your payment of{" "}
         <strong className="text-foreground">{formatNaira(order.total_kobo)}</strong>.
