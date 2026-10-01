@@ -1,6 +1,8 @@
 import "server-only";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { buildOrderConfirmationEmail } from "@/lib/emails/order-confirmation";
+import { sendEmail } from "@/lib/mailgun";
 import { verifyTransaction } from "@/lib/paystack";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type OrderStatus = "pending" | "paid" | "failed";
 
@@ -11,15 +13,58 @@ export type OrderRecord = {
   total_kobo: number;
   email: string;
   full_name: string;
+  address: string;
+  city: string;
+  state: string;
   created_at: string;
 };
 
-const ORDER_COLUMNS = "id, user_id, status, total_kobo, email, full_name, created_at";
+const ORDER_COLUMNS =
+  "id, user_id, status, total_kobo, email, full_name, address, city, state, created_at";
 
 export type PaymentConfirmation = {
   order: OrderRecord;
   justPaid: boolean;
 };
+
+type OrderItemRow = {
+  product_name: string;
+  unit_price_kobo: number;
+  quantity: number;
+};
+
+export function formatOrderReference(orderId: string): string {
+  return orderId.slice(0, 8).toUpperCase();
+}
+
+async function sendOrderConfirmationEmail(order: OrderRecord): Promise<void> {
+  const admin = createAdminClient();
+
+  const { data, error } = await admin
+    .from("order_items")
+    .select("product_name, unit_price_kobo, quantity")
+    .eq("order_id", order.id);
+
+  if (error) {
+    throw new Error(`Failed to load order items: ${error.message}`);
+  }
+
+  const email = buildOrderConfirmationEmail({
+    customerName: order.full_name,
+    orderReference: formatOrderReference(order.id),
+    totalKobo: order.total_kobo,
+    items: (data as OrderItemRow[]).map((item) => ({
+      name: item.product_name,
+      quantity: item.quantity,
+      unitPriceKobo: item.unit_price_kobo,
+    })),
+    address: order.address,
+    city: order.city,
+    state: order.state,
+  });
+
+  await sendEmail({ to: order.email, ...email });
+}
 
 // Safe to call more than once for the same reference (for example, if the
 // shopper refreshes the confirmation page): only the first call that sees a
@@ -90,7 +135,8 @@ export async function confirmOrderPayment(
   }
 
   const justPaid = (updated?.length ?? 0) > 0;
-  
+  const paidOrder: OrderRecord = { ...order, status: "paid" };
+
   if (justPaid) {
     // The shopper has paid for what was in their cart, so start them fresh.
     const { error: cartError } = await admin
@@ -101,7 +147,15 @@ export async function confirmOrderPayment(
     if (cartError) {
       console.error("[orders:confirm] Failed to clear cart:", cartError);
     }
+
+    // A failed email must never undo a successful payment, so we log it
+    // instead of throwing. The order stays paid either way.
+    try {
+      await sendOrderConfirmationEmail(paidOrder);
+    } catch (emailError) {
+      console.error("[orders:confirm] Failed to send confirmation email:", emailError);
+    }
   }
 
-  return { order: { ...order, status: "paid" }, justPaid };
+  return { order: paidOrder, justPaid };
 }

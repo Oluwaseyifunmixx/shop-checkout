@@ -3,8 +3,9 @@ import Link from "next/link";
 import { CircleCheck, CircleX, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatNaira } from "@/lib/format";
-import { confirmOrderPayment } from "@/lib/orders";
+import { confirmOrderPayment, formatOrderReference } from "@/lib/orders";
 import { createClient } from "@/lib/supabase/server";
+
 
 export const metadata: Metadata = {
   title: "Order confirmation",
@@ -131,8 +132,11 @@ export default async function ConfirmationPage({ searchParams }: ConfirmationPag
         ))}
       </ul>
 
-      <p className="text-sm text-muted-foreground">
-        Order reference: <span className="font-mono">{order.id.slice(0, 8).toUpperCase()}</span>
+           <p className="text-sm text-muted-foreground">
+        Order reference:{" "}
+        <span className="font-mono">{formatOrderReference(order.id)}</span>
+        <br />
+        A confirmation email is on its way to {order.email}.
       </p>
 
       <Button asChild>
