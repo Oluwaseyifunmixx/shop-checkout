@@ -26,7 +26,7 @@ export async function SiteHeader() {
         </Link>
 
         {user ? (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-3 sm:gap-4">
             <CartSheet items={cart} />
             <UserMenu name={name} email={user.email ?? ""} />
           </div>
