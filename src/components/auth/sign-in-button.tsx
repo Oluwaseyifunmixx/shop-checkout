@@ -19,8 +19,20 @@ export function SignInButton() {
   }
 
   return (
-    <Button onClick={handleSignIn} disabled={isRedirecting}>
-      {isRedirecting ? "Redirecting…" : "Sign in with Google"}
+    <Button
+      size="lg"
+      onClick={handleSignIn}
+      disabled={isRedirecting}
+      className="h-11 px-5 text-base"
+    >
+      {isRedirecting ? (
+        "Redirecting…"
+      ) : (
+        <>
+          <span className="sm:hidden">Sign in</span>
+          <span className="hidden sm:inline">Sign in with Google</span>
+        </>
+      )}
     </Button>
   );
 }
