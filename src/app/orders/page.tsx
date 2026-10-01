@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Package } from "lucide-react";
+import { ArrowLeft, CircleCheck, CircleX, Package, type LucideIcon } from "lucide-react";
 import { SignInButton } from "@/components/auth/sign-in-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getMyOrders, type CustomerOrderStatus } from "@/lib/data/orders";
 import { formatNaira } from "@/lib/format";
 import { formatOrderReference } from "@/lib/orders";
+import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -22,10 +23,18 @@ const orderDateFormatter = new Intl.DateTimeFormat("en-NG", {
 
 const STATUS_BADGES: Record<
   CustomerOrderStatus,
-  { label: string; variant: "default" | "destructive" }
+  { label: string; icon: LucideIcon; className: string }
 > = {
-  paid: { label: "Paid", variant: "default" },
-  failed: { label: "Payment failed", variant: "destructive" },
+  paid: {
+    label: "Paid",
+    icon: CircleCheck,
+    className: "border-green-200 bg-green-100 text-green-800",
+  },
+  failed: {
+    label: "Payment failed",
+    icon: CircleX,
+    className: "border-red-200 bg-red-100 text-red-800",
+  },
 };
 
 function CenteredMessage({ title, children }: { title: string; children: React.ReactNode }) {
@@ -83,6 +92,7 @@ export default async function OrdersPage() {
       <ul className="space-y-4">
         {orders.map((order) => {
           const badge = STATUS_BADGES[order.status];
+          const BadgeIcon = badge.icon;
 
           return (
             <li key={order.id} className="space-y-4 rounded-xl border bg-card p-5">
@@ -95,7 +105,13 @@ export default async function OrdersPage() {
                     {orderDateFormatter.format(new Date(order.createdAt))}
                   </p>
                 </div>
-                <Badge variant={badge.variant}>{badge.label}</Badge>
+                <Badge
+                  variant="outline"
+                  className={cn("gap-1.5 px-3 py-1 text-sm font-medium", badge.className)}
+                >
+                  <BadgeIcon className="size-4" />
+                  {badge.label}
+                </Badge>
               </div>
 
               <ul className="divide-y text-sm">
