@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, CircleCheck, CircleX, Package, type LucideIcon } from "lucide-react";
+import {
+  ArrowLeft,
+  CircleCheck,
+  CircleX,
+  Clock,
+  Package,
+  RefreshCw,
+  type LucideIcon,
+} from "lucide-react";
 import { SignInButton } from "@/components/auth/sign-in-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +37,11 @@ const STATUS_BADGES: Record<
     label: "Paid",
     icon: CircleCheck,
     className: "border-green-200 bg-green-100 text-green-800",
+  },
+  pending: {
+    label: "Awaiting payment",
+    icon: Clock,
+    className: "border-amber-200 bg-amber-100 text-amber-800",
   },
   failed: {
     label: "Payment failed",
@@ -129,6 +142,22 @@ export default async function OrdersPage() {
                 <span>Total</span>
                 <span>{formatNaira(order.totalKobo)}</span>
               </div>
+
+              {order.status === "pending" && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-amber-50 p-3">
+                  <p className="text-sm text-amber-900">
+                    Already paid? Check with Paystack to update this order.
+                  </p>
+                  <Button asChild variant="outline" size="sm">
+                    <Link
+                      href={`/checkout/verify?reference=${encodeURIComponent(order.paymentReference)}`}
+                    >
+                      <RefreshCw />
+                      Check payment status
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </li>
           );
         })}
