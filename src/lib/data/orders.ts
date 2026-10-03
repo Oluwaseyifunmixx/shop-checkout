@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
 export type CustomerOrderItem = {
@@ -35,8 +36,12 @@ type OrderRow = {
 // Uses the shopper's own session, so Row Level Security only returns their
 // orders. Pending orders are included so shoppers can re-check a payment, for
 // example if they paid but closed the tab before returning to the shop.
-export async function getMyOrders(): Promise<CustomerOrder[]> {
-  const supabase = await createClient();
+// `client` lets API routes pass in a connection that carries a mobile user's
+// token. The website passes nothing and gets the cookie-based connection.
+export async function getMyOrders(
+  client?: SupabaseClient
+): Promise<CustomerOrder[]> {
+  const supabase = client ?? (await createClient());
   const { data, error } = await supabase
     .from("orders")
     .select(
