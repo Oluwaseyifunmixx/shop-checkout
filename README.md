@@ -30,6 +30,7 @@ A full-stack shop with Google sign-in, a database-backed cart, a checkout page w
 - **My orders**: signed-in shoppers can see their past orders, with status, items and totals
 - **Everything persisted**: products, carts, orders and order items all live in Supabase
 - **Responsive** on phone, tablet and desktop
+- **Mobile app:** a companion Expo app uses the same login and cart through a small JSON API, with cart changes on the website appearing on the phone instantly
 
 ## Tech stack
 
@@ -51,6 +52,47 @@ A full-stack shop with Google sign-in, a database-backed cart, a checkout page w
 2. The server asks Paystack to start a payment for that exact amount, and the shopper is redirected to Paystack.
 3. After paying, Paystack sends the shopper to `/checkout/verify`. The server asks Paystack directly whether the payment succeeded, **and checks the amount and currency match the order**.
 4. Only then is the order marked `paid`, the cart emptied, and the confirmation email sent. A conditional update means this happens **exactly once**, even if the page is refreshed.
+
+## Mobile API
+
+The [Crafted mobile app](https://github.com/Oluwaseyifunmixx/Crafted-Mobile) uses
+the same data through a small JSON API, so the phone and the website share one
+login and one cart.
+
+| Endpoint | Method | Login | What it does |
+| --- | --- | --- | --- |
+| `/api/products` | GET | none | Lists the products (public) |
+| `/api/cart` | GET | token or cookie | The cart items and totals |
+| `/api/cart` | POST | token only | Adds one of a product. Body: `{ "productId": "<uuid>" }` |
+| `/api/cart/[itemId]` | PATCH | token only | Sets a quantity. Body: `{ "quantity": 3 }` |
+| `/api/cart/[itemId]` | DELETE | token only | Removes an item |
+| `/api/orders` | GET | token or cookie | The shopper's orders |
+
+**How it is secured**
+
+- The app sends its Supabase login token as `Authorization: Bearer <token>`.
+  `getRequestAuth` (`src/lib/supabase/request-auth.ts`) asks Supabase to check
+  the token, then builds a client that acts as that user. Row Level Security
+  therefore applies exactly as on the website, and a shopper can only reach
+  their own cart and orders. The admin (secret key) client is never used in
+  these routes.
+- Routes that change data accept the token only, not the website's login
+  cookie. Browsers attach cookies automatically, so a cookie-authenticated
+  write could be triggered from another site. The website changes the cart
+  through its own server actions.
+- The cart rules (validation and the 20-item limit) live in
+  `src/lib/cart-service.ts`, shared by the server actions and the API, so there
+  is one copy.
+- Money is sent in kobo. Image paths are returned as full URLs, because a phone
+  has no site to resolve a path against. Payment references are never returned.
+
+**Live cart sync.** The app listens to changes on the `cart_items` table through
+Supabase Realtime and reloads the cart from `GET /api/cart`. Switch Realtime on
+once, in the Supabase SQL editor:
+
+```sql
+alter publication supabase_realtime add table public.cart_items;
+```
 
 ## Security
 

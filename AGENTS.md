@@ -4,7 +4,7 @@ Guidance for AI coding agents working in this repository. Read this before makin
 
 ## Project overview
 
-Crafted is a full-stack shop built with Next.js 16 (App Router). Shoppers browse products, sign in with Google, manage a database-backed cart, check out with Paystack, and receive a Mailgun confirmation email. All data lives in Supabase.
+Crafted is a full-stack shop built with Next.js 16 (App Router). Shoppers browse products, sign in with Google, manage a database-backed cart, check out with Paystack, and receive a Mailgun confirmation email. All data lives in Supabase. A companion mobile app (Crafted-Mobile, built with Expo) uses the same data through the JSON routes in `src/app/api/`.
 
 ## Commands
 
@@ -29,6 +29,7 @@ src/
 ├── app/
 │   ├── page.tsx                 Product listing (home)
 │   ├── actions/                 Server actions: cart.ts, checkout.ts
+│   ├── api/                     JSON endpoints for the mobile app: products, cart, orders
 │   ├── auth/callback/route.ts   Exchanges Google's sign-in code for a session
 │   ├── orders/page.tsx          The shopper's order history
 │   ├── checkout/
@@ -45,11 +46,13 @@ src/
 │   ├── layout/                  Site header
 │   └── products/                Product card, image, add-to-cart button
 ├── lib/
-│   ├── supabase/                client.ts (browser), server.ts (server), admin.ts (secret key)
-│   ├── data/                    Server-side reads: products, cart
+│   ├── supabase/                client.ts (browser), server.ts (server, cookies), admin.ts (secret key), request-auth.ts (who is calling an API route)
+│   ├── data/                    Server-side reads: products, cart, orders
 │   ├── emails/                  Email templates
 │   ├── validations/             Zod schemas
 │   ├── cart.ts                  Cart totals and limits (shared by client and server)
+│   ├── cart-service.ts          Cart add, update and remove logic, shared by server actions and API routes
+│   ├── api/                     Shared response helpers for API routes
 │   ├── orders.ts                Payment confirmation and order emails
 │   ├── paystack.ts              Paystack API calls
 │   ├── mailgun.ts               Mailgun API calls
@@ -72,6 +75,10 @@ public/products/                 Product photos
 8. **Server actions return result objects** (`{ ok: true }` or `{ ok: false, code, message }`) instead of throwing, so the UI can react to expected cases like "sign in required".
 9. **Side effects that change what the header shows** (like emptying the cart) must finish before a page renders, because layouts and pages render in parallel. That's why Paystack returns to `/checkout/verify` first.
 10. **A failed email must never undo a successful payment.** Log email errors; don't throw them.
+11. **API routes identify the caller with `getRequestAuth`** and use the client it returns, never the admin client. That client acts as the user, so Row Level Security protects their data.
+12. **Cart rules live in `lib/cart-service.ts`.** Server actions and API routes both call it, so validation and the quantity limit exist once.
+13. **Routes that change data are token only**: `getRequestAuth(request, { allowCookie: false })`. Browsers send cookies automatically, so a cookie-authenticated write could be triggered from another site. Read routes may accept the cookie.
+14. **API routes answer in JSON with the right status** (401 signed out, 400 invalid input, 500 server error) and `{ error: string }` on failure. Send money in kobo, images as full URLs, and never return payment references or other internal fields.
 
 ## Code conventions
 
