@@ -39,8 +39,11 @@ export async function GET(request: Request) {
 }
 
 // Adds one of a product to the cart. Body: { "productId": "<uuid>" }
+// Token only: the website adds to the cart through its own server actions.
 export async function POST(request: Request) {
-  const { supabase, user } = await getRequestAuth(request);
+  const { supabase, user } = await getRequestAuth(request, {
+    allowCookie: false,
+  });
 
   if (!user) {
     return unauthorized();

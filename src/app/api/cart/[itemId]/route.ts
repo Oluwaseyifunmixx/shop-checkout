@@ -4,9 +4,14 @@ import { getRequestAuth } from "@/lib/supabase/request-auth";
 
 type RouteContext = { params: Promise<{ itemId: string }> };
 
+// Both handlers are token only: the website changes the cart through its own
+// server actions, so a browser cookie must not be able to use these routes.
+
 // Sets an item's quantity. Body: { "quantity": 3 }
 export async function PATCH(request: Request, { params }: RouteContext) {
-  const { supabase, user } = await getRequestAuth(request);
+  const { supabase, user } = await getRequestAuth(request, {
+    allowCookie: false,
+  });
 
   if (!user) {
     return unauthorized();
@@ -24,7 +29,9 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
 // Removes an item from the cart.
 export async function DELETE(request: Request, { params }: RouteContext) {
-  const { supabase, user } = await getRequestAuth(request);
+  const { supabase, user } = await getRequestAuth(request, {
+    allowCookie: false,
+  });
 
   if (!user) {
     return unauthorized();
