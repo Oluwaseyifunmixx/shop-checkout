@@ -1,16 +1,15 @@
 import { NextResponse } from "next/server";
-import { getCart } from "@/lib/data/cart";
+import { fromResult, unauthorized } from "@/lib/api/cart-responses";
 import { getCartTotals } from "@/lib/cart";
+import { addItem } from "@/lib/cart-service";
+import { getCart } from "@/lib/data/cart";
 import { getRequestAuth } from "@/lib/supabase/request-auth";
 
 export async function GET(request: Request) {
   const { supabase, user } = await getRequestAuth(request);
 
   if (!user) {
-    return NextResponse.json(
-      { error: "Sign in to use your cart." },
-      { status: 401 }
-    );
+    return unauthorized();
   }
 
   try {
@@ -22,7 +21,7 @@ export async function GET(request: Request) {
         ...item,
         product: {
           ...item.product,
-          // Same reason as in the products endpoint: a phone needs full addresses.
+          // A phone needs full image addresses, not paths.
           imageUrl: item.product.imageUrl?.startsWith("/")
             ? `${origin}${item.product.imageUrl}`
             : item.product.imageUrl,
@@ -37,4 +36,21 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
+}
+
+// Adds one of a product to the cart. Body: { "productId": "<uuid>" }
+export async function POST(request: Request) {
+  const { supabase, user } = await getRequestAuth(request);
+
+  if (!user) {
+    return unauthorized();
+  }
+
+  const body = await request.json().catch(() => null);
+  const productId =
+    body && typeof body === "object"
+      ? (body as { productId?: unknown }).productId
+      : undefined;
+
+  return fromResult(await addItem(supabase, user.id, productId));
 }
