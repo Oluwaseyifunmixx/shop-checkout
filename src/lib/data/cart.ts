@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import type { CartItem } from "@/types/shop";
 import { PRODUCT_COLUMNS, toProduct, type ProductRow } from "./products";
@@ -8,8 +9,13 @@ type CartRow = {
   product: ProductRow | null;
 };
 
-export async function getCart(userId: string): Promise<CartItem[]> {
-  const supabase = await createClient();
+// `client` lets API routes pass in a connection that carries a mobile user's
+// token. The website passes nothing and gets the cookie-based connection.
+export async function getCart(
+  userId: string,
+  client?: SupabaseClient
+): Promise<CartItem[]> {
+  const supabase = client ?? (await createClient());
   const { data, error } = await supabase
     .from("cart_items")
     .select(`id, quantity, product:products(${PRODUCT_COLUMNS})`)
