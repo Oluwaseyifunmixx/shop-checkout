@@ -1,17 +1,11 @@
 import type { Metadata } from "next";
 import { CircleCheck, CircleX, Clock } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { confirmOrderPayment, formatOrderReference } from "@/lib/orders";
 
 export const metadata: Metadata = {
   title: "Payment status",
   robots: { index: false, follow: false },
 };
-
-// Asks Android to bring Expo Go (and so the Crafted app) back to the front. It
-// is an experiment: the page also tells shoppers how to go back by hand.
-const OPEN_APP_HREF =
-  "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=host.exp.exponent;end";
 
 type MobileReturnPageProps = {
   searchParams: Promise<{ reference?: string; trxref?: string }>;
@@ -51,22 +45,22 @@ const CONTENT: Record<
   paid: {
     icon: <CircleCheck className="size-12 text-green-600" />,
     title: "Payment received",
-    body: "Thank you! Your order is confirmed. Go back to the Crafted app to see it.",
+    body: "Thank you! Your order is confirmed.",
   },
   pending: {
     icon: <Clock className="size-12 text-muted-foreground" />,
     title: "We're confirming your payment",
-    body: "Go back to the Crafted app and tap \"I've paid, check my payment\".",
+    body: "In the Crafted app, tap \"I've paid, check my payment\".",
   },
   failed: {
     icon: <CircleX className="size-12 text-destructive" />,
     title: "Your payment didn't go through",
-    body: "You haven't been charged. Go back to the Crafted app, where your cart is still saved, and try again.",
+    body: "You haven't been charged. Your cart is still saved in the Crafted app, so you can try again.",
   },
   unknown: {
     icon: <CircleX className="size-12 text-muted-foreground" />,
     title: "We couldn't find that payment",
-    body: "Go back to the Crafted app and open the Orders tab to check.",
+    body: "Open the Orders tab in the Crafted app to check.",
   },
 };
 
@@ -94,14 +88,13 @@ export default async function MobileReturnPage({
           </p>
         )}
 
-        <Button asChild size="lg" className="h-11 px-6 text-base">
-          <a href={OPEN_APP_HREF}>Back to the Crafted app</a>
-        </Button>
-
-        <p className="text-sm text-muted-foreground">
-          If the button does nothing, press your phone&rsquo;s back button, or
-          open the Crafted app from your recent apps.
-        </p>
+        <div className="mt-2 rounded-xl border p-4 text-sm">
+          <p className="font-medium">Now go back to the Crafted app</p>
+          <p className="mt-1 text-muted-foreground">
+            Press your phone&rsquo;s back button, or open the Crafted app from
+            your recent apps. It checks your payment by itself when you return.
+          </p>
+        </div>
       </div>
     </div>
   );
