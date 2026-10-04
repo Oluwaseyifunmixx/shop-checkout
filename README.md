@@ -30,7 +30,7 @@ A full-stack shop with Google sign-in, a database-backed cart, a checkout page w
 - **My orders**: signed-in shoppers can see their past orders, with status, items and totals
 - **Everything persisted**: products, carts, orders and order items all live in Supabase
 - **Responsive** on phone, tablet and desktop
-- **Mobile app:** a companion Expo app uses the same login and cart through a small JSON API, with cart changes on the website appearing on the phone instantly
+- **Mobile app:** a companion Expo app shares the same login and cart through a small JSON API. Cart changes on the website appear on the phone instantly, and the phone can check out through the same Paystack flow
 
 ## Tech stack
 
@@ -48,7 +48,7 @@ A full-stack shop with Google sign-in, a database-backed cart, a checkout page w
 
 ## How checkout works
 
-1. The shopper submits delivery details. A **server action** loads their cart, calculates the total from **database prices** (never from the browser), and creates a `pending` order with a unique payment reference.
+1. The shopper submits delivery details. A **server action** (its logic lives in `src/lib/checkout-service.ts`, shared with the mobile API) loads their cart, calculates the total from **database prices** (never from the browser), and creates a `pending` order with a unique payment reference.
 2. The server asks Paystack to start a payment for that exact amount, and the shopper is redirected to Paystack.
 3. After paying, Paystack sends the shopper to `/checkout/verify`. The server asks Paystack directly whether the payment succeeded, **and checks the amount and currency match the order**.
 4. Only then is the order marked `paid`, the cart emptied, and the confirmation email sent. A conditional update means this happens **exactly once**, even if the page is refreshed.
@@ -57,7 +57,7 @@ A full-stack shop with Google sign-in, a database-backed cart, a checkout page w
 
 The [Crafted mobile app](https://github.com/Oluwaseyifunmixx/Crafted-Mobile) uses
 the same data through a small JSON API, so the phone and the website share one
-login and one cart.
+login, one cart and one checkout.
 
 | Endpoint | Method | Login | What it does |
 | --- | --- | --- | --- |
@@ -67,6 +67,23 @@ login and one cart.
 | `/api/cart/[itemId]` | PATCH | token only | Sets a quantity. Body: `{ "quantity": 3 }` |
 | `/api/cart/[itemId]` | DELETE | token only | Removes an item |
 | `/api/orders` | GET | token or cookie | The shopper's orders |
+| `/api/checkout` | POST | token only | Starts a payment for the cart. Body: `{ "fullName", "phone", "address", "city", "state" }`. Returns `{ "paymentUrl", "orderId" }` |
+| `/api/orders/[orderId]/confirm` | POST | token only | Re-checks an order's payment with Paystack. Returns `{ "status": "paid" \| "pending" \| "failed" }` |
+
+**Paying from the phone**
+
+1. The app sends only the delivery details to `POST /api/checkout`. The server
+   builds the order from the shopper's cart using **database prices**, exactly
+   as the website does, and starts the Paystack payment. The same function,
+   `createCheckout` in `src/lib/checkout-service.ts`, serves both.
+2. The app opens Paystack's page in the phone's browser. After paying, Paystack
+   sends the browser to `/checkout/mobile-return`. That page confirms the
+   payment on the server (so the order is marked paid, the cart emptied and the
+   email sent once, as on the website) and tells the shopper to go back to the
+   app. It cannot reopen the app by itself.
+3. When the shopper returns, the app calls
+   `POST /api/orders/[orderId]/confirm` to check the payment. An order that is
+   still awaiting payment can be re-checked the same way later.
 
 **How it is secured**
 
@@ -74,17 +91,28 @@ login and one cart.
   `getRequestAuth` (`src/lib/supabase/request-auth.ts`) asks Supabase to check
   the token, then builds a client that acts as that user. Row Level Security
   therefore applies exactly as on the website, and a shopper can only reach
-  their own cart and orders. The admin (secret key) client is never used in
-  these routes.
+  their own cart and orders. The admin (secret key) client is never used to
+  identify the caller.
 - Routes that change data accept the token only, not the website's login
   cookie. Browsers attach cookies automatically, so a cookie-authenticated
-  write could be triggered from another site. The website changes the cart
-  through its own server actions.
+  write could be triggered from another site. The website changes the cart and
+  starts checkout through its own server actions.
 - The cart rules (validation and the 20-item limit) live in
-  `src/lib/cart-service.ts`, shared by the server actions and the API, so there
-  is one copy.
+  `src/lib/cart-service.ts`, and the checkout logic in
+  `src/lib/checkout-service.ts`. The server actions and the API share them, so
+  there is one copy of each.
+- Totals come from database prices, and a payment is only trusted after the
+  server verifies it with Paystack, including the amount and currency. The app
+  can never send a price.
+- The confirm route loads the order through the shopper's own client, so Row
+  Level Security doubles as the ownership check: another shopper's order id
+  returns 404.
+- `/checkout/mobile-return` has to be public, because the phone's browser has no
+  website login. It is keyed by the random payment reference, and shows only the
+  payment status and the short order reference, never the items, name or address.
 - Money is sent in kobo. Image paths are returned as full URLs, because a phone
-  has no site to resolve a path against. Payment references are never returned.
+  has no site to resolve a path against. Payment references are never returned
+  by the API.
 
 **Live cart sync.** The app listens to changes on the `cart_items` table through
 Supabase Realtime and reloads the cart from `GET /api/cart`. Switch Realtime on

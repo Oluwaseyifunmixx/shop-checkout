@@ -4,7 +4,7 @@ Guidance for AI coding agents working in this repository. Read this before makin
 
 ## Project overview
 
-Crafted is a full-stack shop built with Next.js 16 (App Router). Shoppers browse products, sign in with Google, manage a database-backed cart, check out with Paystack, and receive a Mailgun confirmation email. All data lives in Supabase. A companion mobile app (Crafted-Mobile, built with Expo) uses the same data through the JSON routes in `src/app/api/`.
+Crafted is a full-stack shop built with Next.js 16 (App Router). Shoppers browse products, sign in with Google, manage a database-backed cart, check out with Paystack, and receive a Mailgun confirmation email. All data lives in Supabase. A companion mobile app (Crafted-Mobile, built with Expo) uses the same data through the JSON routes in `src/app/api/`, and can check out through the same payment flow.
 
 ## Commands
 
@@ -29,12 +29,13 @@ src/
 ├── app/
 │   ├── page.tsx                 Product listing (home)
 │   ├── actions/                 Server actions: cart.ts, checkout.ts
-│   ├── api/                     JSON endpoints for the mobile app: products, cart, orders
+│   ├── api/                     JSON endpoints for the mobile app: products, cart, orders, checkout
 │   ├── auth/callback/route.ts   Exchanges Google's sign-in code for a session
 │   ├── orders/page.tsx          The shopper's order history
 │   ├── checkout/
 │   │   ├── page.tsx             Checkout form and order summary
 │   │   ├── verify/route.ts      Paystack callback: confirms payment, then redirects
+│   │   ├── mobile-return/       Public result page for phones coming back from Paystack (status only)
 │   │   └── confirmation/        Paid, failed and pending order states
 │   ├── privacy/page.tsx         Privacy policy (required for Google OAuth publishing)
 │   └── layout.tsx               Root layout, header, toasts
@@ -52,6 +53,7 @@ src/
 │   ├── validations/             Zod schemas
 │   ├── cart.ts                  Cart totals and limits (shared by client and server)
 │   ├── cart-service.ts          Cart add, update and remove logic, shared by server actions and API routes
+│   ├── checkout-service.ts      Creates the pending order and starts the Paystack payment, shared by the server action and the API
 │   ├── api/                     Shared response helpers for API routes
 │   ├── orders.ts                Payment confirmation and order emails
 │   ├── paystack.ts              Paystack API calls
@@ -75,10 +77,13 @@ public/products/                 Product photos
 8. **Server actions return result objects** (`{ ok: true }` or `{ ok: false, code, message }`) instead of throwing, so the UI can react to expected cases like "sign in required".
 9. **Side effects that change what the header shows** (like emptying the cart) must finish before a page renders, because layouts and pages render in parallel. That's why Paystack returns to `/checkout/verify` first.
 10. **A failed email must never undo a successful payment.** Log email errors; don't throw them.
-11. **API routes identify the caller with `getRequestAuth`** and use the client it returns, never the admin client. That client acts as the user, so Row Level Security protects their data.
+11. **API routes identify the caller with `getRequestAuth`** and use the client it returns to read the caller's own data. That client acts as the user, so Row Level Security protects it.
 12. **Cart rules live in `lib/cart-service.ts`.** Server actions and API routes both call it, so validation and the quantity limit exist once.
 13. **Routes that change data are token only**: `getRequestAuth(request, { allowCookie: false })`. Browsers send cookies automatically, so a cookie-authenticated write could be triggered from another site. Read routes may accept the cookie.
-14. **API routes answer in JSON with the right status** (401 signed out, 400 invalid input, 500 server error) and `{ error: string }` on failure. Send money in kobo, images as full URLs, and never return payment references or other internal fields.
+14. **API routes answer in JSON with the right status** (401 signed out, 400 invalid input, 404 not found, 500 server error) and `{ error: string }` on failure. Send money in kobo, images as full URLs, and never return payment references or other internal fields.
+15. **Checkout logic lives in `lib/checkout-service.ts`.** The server action and `POST /api/checkout` both call `createCheckout`, so totals, order creation and the Paystack call exist once. Only the Paystack callback address differs: `/checkout/verify` for the website and `/checkout/mobile-return` for the app.
+16. **Pages that must work without a website login stay minimal.** `/checkout/mobile-return` is public because a phone's browser has no cookie, so it shows only the payment status and the short order reference. Never show items, names, addresses or a payment reference there.
+17. **Check order ownership through the shopper's own client.** `POST /api/orders/[orderId]/confirm` loads the order with the caller's client, so Row Level Security only returns their orders (another shopper's id gets 404), and only then calls `confirmOrderPayment`.
 
 ## Code conventions
 
