@@ -6,11 +6,21 @@ import { initializeTransaction } from "@/lib/paystack";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkoutSchema } from "@/lib/validations/checkout";
 
+export type CheckoutErrorCode =
+  | "SIGN_IN_REQUIRED"
+  | "INVALID_INPUT"
+  | "EMPTY_CART"
+  | "SERVER_ERROR";
+
 export type CreateCheckoutResult =
-  | { ok: true; paymentUrl: string; reference: string }
-  | { ok: false; message: string };
+  | { ok: true; paymentUrl: string; orderId: string }
+  | { ok: false; code: CheckoutErrorCode; message: string };
 
 const GENERIC_ERROR = "We couldn't start your payment. Please try again.";
+
+function failure(code: CheckoutErrorCode, message: string): CreateCheckoutResult {
+  return { ok: false, code, message };
+}
 
 type CreateCheckoutParams = {
   // A client that acts as the signed-in user, so their own cart is read under
@@ -33,19 +43,19 @@ export async function createCheckout({
   callbackUrl,
 }: CreateCheckoutParams): Promise<CreateCheckoutResult> {
   if (!user.email) {
-    return { ok: false, message: "Please sign in to check out." };
+    return failure("SIGN_IN_REQUIRED", "Please sign in to check out.");
   }
 
   const parsed = checkoutSchema.safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, message: "Please check your delivery details." };
+    return failure("INVALID_INPUT", "Please check your delivery details.");
   }
 
   const cart = await getCart(user.id, supabase);
 
   if (cart.length === 0) {
-    return { ok: false, message: "Your cart is empty." };
+    return failure("EMPTY_CART", "Your cart is empty.");
   }
 
   // The total always comes from database prices, never from the caller.
@@ -72,7 +82,7 @@ export async function createCheckout({
 
   if (orderError || !order) {
     console.error("[checkout:start] Failed to create order:", orderError);
-    return { ok: false, message: GENERIC_ERROR };
+    return failure("SERVER_ERROR", GENERIC_ERROR);
   }
 
   const { error: itemsError } = await admin.from("order_items").insert(
@@ -88,7 +98,7 @@ export async function createCheckout({
   if (itemsError) {
     console.error("[checkout:start] Failed to save order items:", itemsError);
     await admin.from("orders").delete().eq("id", order.id);
-    return { ok: false, message: GENERIC_ERROR };
+    return failure("SERVER_ERROR", GENERIC_ERROR);
   }
 
   try {
@@ -100,10 +110,10 @@ export async function createCheckout({
       metadata: { order_id: order.id },
     });
 
-    return { ok: true, paymentUrl: payment.authorization_url, reference };
+    return { ok: true, paymentUrl: payment.authorization_url, orderId: order.id };
   } catch (error) {
     console.error("[checkout:start] Failed to start Paystack payment:", error);
     await admin.from("orders").update({ status: "failed" }).eq("id", order.id);
-    return { ok: false, message: GENERIC_ERROR };
+    return failure("SERVER_ERROR", GENERIC_ERROR);
   }
 }

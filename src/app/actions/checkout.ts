@@ -27,5 +27,7 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutResul
     callbackUrl: `${origin}/checkout/verify`,
   });
 
-  return result.ok ? { ok: true, paymentUrl: result.paymentUrl } : result;
+  return result.ok
+    ? { ok: true, paymentUrl: result.paymentUrl }
+    : { ok: false, message: result.message };
 }
