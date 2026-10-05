@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SignInButton } from "@/components/auth/sign-in-button";
 import { UserMenu } from "@/components/auth/user-menu";
+import { CartRealtimeSync } from "@/components/cart/cart-realtime-sync";
 import { CartSheet } from "@/components/cart/cart-sheet";
 import { getCart } from "@/lib/data/cart";
 import { createClient } from "@/lib/supabase/server";
@@ -27,6 +28,7 @@ export async function SiteHeader() {
 
         {user ? (
           <div className="flex items-center gap-3 sm:gap-4">
+            <CartRealtimeSync />
             <CartSheet items={cart} />
             <UserMenu name={name} email={user.email ?? ""} />
           </div>
